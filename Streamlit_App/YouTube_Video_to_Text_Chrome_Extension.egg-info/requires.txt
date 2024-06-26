@@ -1,0 +1,6 @@
+uvicorn==0.15.0
+fastapi==0.75.0
+youtube_transcript_api==0.4.1
+textwrap3
+streamlit
+logger

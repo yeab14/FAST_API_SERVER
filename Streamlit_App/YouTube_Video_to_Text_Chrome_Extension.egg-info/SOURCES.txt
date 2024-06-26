@@ -1,0 +1,6 @@
+setup.py
+YouTube_Video_to_Text_Chrome_Extension.egg-info/PKG-INFO
+YouTube_Video_to_Text_Chrome_Extension.egg-info/SOURCES.txt
+YouTube_Video_to_Text_Chrome_Extension.egg-info/dependency_links.txt
+YouTube_Video_to_Text_Chrome_Extension.egg-info/requires.txt
+YouTube_Video_to_Text_Chrome_Extension.egg-info/top_level.txt

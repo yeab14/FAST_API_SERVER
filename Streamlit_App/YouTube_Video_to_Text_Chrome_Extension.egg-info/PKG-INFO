@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: YouTube-Video-to-Text-Chrome-Extension
+Version: 1.0
+Author: Yeabsira Dereje
+Author-email: yeabl49@gmail.com
+Requires-Dist: uvicorn==0.15.0
+Requires-Dist: fastapi==0.75.0
+Requires-Dist: youtube_transcript_api==0.4.1
+Requires-Dist: textwrap3
+Requires-Dist: streamlit
+Requires-Dist: logger
