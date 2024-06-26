@@ -1,9 +1,19 @@
 import logging
 import re
 import os
+import requests
 from youtube_transcript_api import YouTubeTranscriptApi, CouldNotRetrieveTranscript, TranscriptsDisabled, NoTranscriptFound, VideoUnavailable
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+
+# Initialize YouTubeTranscriptApi instance eagerly for multiple languages
+languages_to_initialize = ["en", "de", "es", "fr", "ru"]
+
+for lang in languages_to_initialize:
+    try:
+        YouTubeTranscriptApi.get_transcript("dummy_video_id", languages=[lang])
+    except Exception as e:
+        logging.error(f"Failed to initialize YouTubeTranscriptApi for language {lang}: {e}")
 
 # Configure COR
 app = FastAPI()
@@ -49,6 +59,11 @@ def extract_transcript_data(youtube_video_id: str):
 
     raise HTTPException(status_code=404, detail="No transcript found for this video in the supported languages")
 
+# Warm-up function to simulate an initial request
+def warm_up():
+    dummy_url = "https://www.youtube.com/watch?v=dummy_video_id"
+    requests.get(f"http://localhost:{port}/transcribe?video_url={dummy_url}")
+
 @app.get("/transcribe")
 def transcribe(video_url: str = Query(..., description="The YouTube video URL")):
     video_id = extract_video_id(video_url)
@@ -59,6 +74,9 @@ def transcribe(video_url: str = Query(..., description="The YouTube video URL"))
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
+    
+    # Perform warm-up request upon application startup
+    warm_up()
+    
     uvicorn.run(app, host="0.0.0.0", port=port)
-
 
