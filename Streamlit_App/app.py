@@ -11,7 +11,7 @@ video_url = st.text_input("Enter YouTube URL")
 if st.button("Transcribe"):
     if video_url:
         # Define the FastAPI endpoint
-        api_url = "https://youtube-video-to-text-chrome-extension.onrender.com/transcribe"
+        api_url = "https://fast-api-server-aoxg.onrender.com/transcribe"
         
         try:
             # Send GET request to the FastAPI endpoint

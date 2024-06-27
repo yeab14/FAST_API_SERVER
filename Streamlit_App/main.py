@@ -5,9 +5,10 @@ import requests
 from youtube_transcript_api import YouTubeTranscriptApi, CouldNotRetrieveTranscript, TranscriptsDisabled, NoTranscriptFound, VideoUnavailable
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from cachetools import TTLCache
 
 # Initialize YouTubeTranscriptApi instance eagerly for multiple languages
-languages_to_initialize = ["en", "de", "es", "fr", "ru"]
+languages_to_initialize = ["en", "de", "es", "fr", "ru", "ja", "ko", "zh-Hans", "zh-Hant", "it", "pt", "nl", "ar"]
 
 for lang in languages_to_initialize:
     try:
@@ -15,10 +16,9 @@ for lang in languages_to_initialize:
     except Exception as e:
         logging.error(f"Failed to initialize YouTubeTranscriptApi for language {lang}: {e}")
 
-# Configure COR
+# Configure CORS
 app = FastAPI()
 
-# Origin of chrome extension or other allowed origins
 origins = [
     "*",
 ]
@@ -40,7 +40,7 @@ def extract_video_id(url: str):
 
 # Function to extract transcript data
 def extract_transcript_data(youtube_video_id: str):
-    language_codes = ["en", "de", "es", "fr", "ru"]  # English, German, Spanish, French, Russian
+    language_codes = ["en", "de", "es", "fr", "ru", "ja", "ko", "zh-Hans", "zh-Hant", "it", "pt", "nl", "ar"]  # Expanded language list
     transcript_text = ""
     
     for code in language_codes:
@@ -59,6 +59,17 @@ def extract_transcript_data(youtube_video_id: str):
 
     raise HTTPException(status_code=404, detail="No transcript found for this video in the supported languages")
 
+# Initialize cache
+cache = TTLCache(maxsize=100, ttl=86400)  # Cache up to 100 transcripts for 1 day
+
+# Function to cache transcript data
+def get_cached_transcript_data(youtube_video_id: str):
+    if youtube_video_id in cache:
+        return cache[youtube_video_id]
+    transcript_data = extract_transcript_data(youtube_video_id)
+    cache[youtube_video_id] = transcript_data
+    return transcript_data
+
 # Warm-up function to simulate an initial request
 def warm_up():
     dummy_url = "https://www.youtube.com/watch?v=dummy_video_id"
@@ -69,7 +80,7 @@ def transcribe(video_url: str = Query(..., description="The YouTube video URL"))
     video_id = extract_video_id(video_url)
     if not video_id:
         raise HTTPException(status_code=400, detail="Invalid YouTube URL")
-    return extract_transcript_data(video_id)
+    return get_cached_transcript_data(video_id)
 
 if __name__ == "__main__":
     import uvicorn
