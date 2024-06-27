@@ -6,6 +6,8 @@ from youtube_transcript_api import YouTubeTranscriptApi, CouldNotRetrieveTranscr
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from cachetools import TTLCache
+import asyncio
+import concurrent.futures
 
 # Initialize YouTubeTranscriptApi instance eagerly for multiple languages
 languages_to_initialize = ["en", "de", "es", "fr", "ru", "ja", "ko", "zh-Hans", "zh-Hant", "it", "pt", "nl", "ar"]
@@ -38,14 +40,22 @@ def extract_video_id(url: str):
     video_id_match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*", url)
     return video_id_match.group(1) if video_id_match else None
 
-# Function to extract transcript data
-def extract_transcript_data(youtube_video_id: str):
+# Asynchronous function to fetch transcript data
+async def fetch_transcript(youtube_video_id: str, language: str):
+    loop = asyncio.get_event_loop()
+    with concurrent.futures.ThreadPoolExecutor() as pool:
+        return await loop.run_in_executor(
+            pool, YouTubeTranscriptApi.get_transcript, youtube_video_id, [language]
+        )
+
+# Asynchronous function to extract transcript data
+async def extract_transcript_data(youtube_video_id: str):
     language_codes = ["en", "de", "es", "fr", "ru", "ja", "ko", "zh-Hans", "zh-Hant", "it", "pt", "nl", "ar"]  # Expanded language list
     transcript_text = ""
-    
+
     for code in language_codes:
         try:
-            transcript = YouTubeTranscriptApi.get_transcript(youtube_video_id, languages=[code])
+            transcript = await fetch_transcript(youtube_video_id, code)
             transcript_text = " ".join([i["text"] for i in transcript])
             return {"transcript": transcript_text, "language": code}
         except (NoTranscriptFound, CouldNotRetrieveTranscript):
@@ -63,10 +73,10 @@ def extract_transcript_data(youtube_video_id: str):
 cache = TTLCache(maxsize=100, ttl=86400)  # Cache up to 100 transcripts for 1 day
 
 # Function to cache transcript data
-def get_cached_transcript_data(youtube_video_id: str):
+async def get_cached_transcript_data(youtube_video_id: str):
     if youtube_video_id in cache:
         return cache[youtube_video_id]
-    transcript_data = extract_transcript_data(youtube_video_id)
+    transcript_data = await extract_transcript_data(youtube_video_id)
     cache[youtube_video_id] = transcript_data
     return transcript_data
 
@@ -76,11 +86,11 @@ def warm_up():
     requests.get(f"http://localhost:{port}/transcribe?video_url={dummy_url}")
 
 @app.get("/transcribe")
-def transcribe(video_url: str = Query(..., description="The YouTube video URL")):
+async def transcribe(video_url: str = Query(..., description="The YouTube video URL")):
     video_id = extract_video_id(video_url)
     if not video_id:
         raise HTTPException(status_code=400, detail="Invalid YouTube URL")
-    return get_cached_transcript_data(video_id)
+    return await get_cached_transcript_data(video_id)
 
 if __name__ == "__main__":
     import uvicorn
@@ -90,4 +100,5 @@ if __name__ == "__main__":
     warm_up()
     
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
