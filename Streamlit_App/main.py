@@ -9,14 +9,21 @@ from cachetools import TTLCache
 import asyncio
 import concurrent.futures
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
 # Initialize YouTubeTranscriptApi instance eagerly for multiple languages
 languages_to_initialize = ["en", "de", "es", "fr", "ru", "ja", "ko", "zh-Hans", "zh-Hant", "it", "pt", "nl", "ar"]
 
-for lang in languages_to_initialize:
-    try:
-        YouTubeTranscriptApi.get_transcript("dummy_video_id", languages=[lang])
-    except Exception as e:
-        logging.error(f"Failed to initialize YouTubeTranscriptApi for language {lang}: {e}")
+def initialize_languages():
+    for lang in languages_to_initialize:
+        try:
+            YouTubeTranscriptApi.get_transcript("dummy_video_id", languages=[lang])
+            logging.info(f"Successfully initialized YouTubeTranscriptApi for language {lang}")
+        except Exception as e:
+            logging.error(f"Failed to initialize YouTubeTranscriptApi for language {lang}: {e}")
+
+initialize_languages()
 
 # Configure CORS
 app = FastAPI()
@@ -32,8 +39,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-logging.basicConfig(level=logging.INFO)
 
 # Function to extract video ID from URL
 def extract_video_id(url: str):
@@ -65,7 +70,8 @@ async def extract_transcript_data(youtube_video_id: str):
         except TranscriptsDisabled:
             raise HTTPException(status_code=403, detail="Transcripts are disabled for this video")
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
+            logging.error(f"Error fetching transcript for language {code}: {e}")
+            continue
 
     raise HTTPException(status_code=404, detail="No transcript found for this video in the supported languages")
 
@@ -83,7 +89,10 @@ async def get_cached_transcript_data(youtube_video_id: str):
 # Warm-up function to simulate an initial request
 def warm_up():
     dummy_url = "https://www.youtube.com/watch?v=dummy_video_id"
-    requests.get(f"http://localhost:{port}/transcribe?video_url={dummy_url}")
+    try:
+        requests.get(f"http://localhost:{port}/transcribe?video_url={dummy_url}")
+    except Exception as e:
+        logging.error(f"Warm-up request failed: {e}")
 
 @app.get("/transcribe")
 async def transcribe(video_url: str = Query(..., description="The YouTube video URL")):
@@ -100,5 +109,6 @@ if __name__ == "__main__":
     warm_up()
     
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
