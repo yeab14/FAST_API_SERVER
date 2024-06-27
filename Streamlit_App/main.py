@@ -12,13 +12,16 @@ import concurrent.futures
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
+# YouTube video to use for initialization
+initialization_video_id = "rkB4g7XdyfM"
+
 # Initialize YouTubeTranscriptApi instance eagerly for multiple languages
 languages_to_initialize = ["en", "de", "es", "fr", "ru", "ja", "ko", "zh-Hans", "zh-Hant", "it", "pt", "nl", "ar"]
 
 def initialize_languages():
     for lang in languages_to_initialize:
         try:
-            YouTubeTranscriptApi.get_transcript("dummy_video_id", languages=[lang])
+            YouTubeTranscriptApi.get_transcript(initialization_video_id, languages=[lang])
             logging.info(f"Successfully initialized YouTubeTranscriptApi for language {lang}")
         except Exception as e:
             logging.error(f"Failed to initialize YouTubeTranscriptApi for language {lang}: {e}")
@@ -88,9 +91,9 @@ async def get_cached_transcript_data(youtube_video_id: str):
 
 # Warm-up function to simulate an initial request
 def warm_up():
-    dummy_url = "https://www.youtube.com/watch?v=dummy_video_id"
+    warmup_video_url = f"https://www.youtube.com/watch?v={initialization_video_id}"
     try:
-        requests.get(f"http://localhost:{port}/transcribe?video_url={dummy_url}")
+        requests.get(f"http://localhost:{port}/transcribe?video_url={warmup_video_url}")
     except Exception as e:
         logging.error(f"Warm-up request failed: {e}")
 
@@ -109,6 +112,8 @@ if __name__ == "__main__":
     warm_up()
     
     uvicorn.run(app, host="0.0.0.0", port=port)
+
+
 
 
 
