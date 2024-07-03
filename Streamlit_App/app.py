@@ -11,7 +11,7 @@ video_url = st.text_input("Enter YouTube URL")
 if st.button("Transcribe"):
     if video_url:
         # Define the FastAPI endpoint
-        api_url = "https://fast-api-server-aoxg.onrender.com/transcribe"
+        api_url = "http://185.124.109.231:9000/transcribe"
         
         try:
             # Send GET request to the FastAPI endpoint

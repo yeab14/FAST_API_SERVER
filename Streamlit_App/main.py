@@ -5,9 +5,6 @@ import requests
 from youtube_transcript_api import YouTubeTranscriptApi, CouldNotRetrieveTranscript, TranscriptsDisabled, NoTranscriptFound, VideoUnavailable
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from cachetools import TTLCache
-import asyncio
-import concurrent.futures
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -89,14 +86,6 @@ async def get_cached_transcript_data(youtube_video_id: str):
     cache[youtube_video_id] = transcript_data
     return transcript_data
 
-# Warm-up function to simulate an initial request
-def warm_up():
-    warmup_video_url = f"https://www.youtube.com/watch?v={initialization_video_id}"
-    try:
-        requests.get(f"http://localhost:{port}/transcribe?video_url={warmup_video_url}")
-    except Exception as e:
-        logging.error(f"Warm-up request failed: {e}")
-
 @app.get("/transcribe")
 async def transcribe(video_url: str = Query(..., description="The YouTube video URL")):
     video_id = extract_video_id(video_url)
@@ -106,13 +95,8 @@ async def transcribe(video_url: str = Query(..., description="The YouTube video 
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    
-    # Perform warm-up request upon application startup
-    warm_up()
-    
+    port = 9000
     uvicorn.run(app, host="0.0.0.0", port=port)
-
 
 
 
