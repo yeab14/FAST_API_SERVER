@@ -1,18 +1,20 @@
 import logging
 import re
-import os
-import requests
+import asyncio
+import concurrent.futures
 from youtube_transcript_api import YouTubeTranscriptApi, CouldNotRetrieveTranscript, TranscriptsDisabled, NoTranscriptFound, VideoUnavailable
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from cachetools import TTLCache  # Assuming you are using `cachetools` for caching
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-# YouTube video to use for initialization
-initialization_video_id = "rkB4g7XdyfM"
+# Initialize FastAPI
+app = FastAPI()
 
 # Initialize YouTubeTranscriptApi instance eagerly for multiple languages
+initialization_video_id = "rkB4g7XdyfM"
 languages_to_initialize = ["en", "de", "es", "fr", "ru", "ja", "ko", "zh-Hans", "zh-Hant", "it", "pt", "nl", "ar"]
 
 def initialize_languages():
@@ -26,12 +28,7 @@ def initialize_languages():
 initialize_languages()
 
 # Configure CORS
-app = FastAPI()
-
-origins = [
-    "*",
-]
-
+origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -55,7 +52,7 @@ async def fetch_transcript(youtube_video_id: str, language: str):
 
 # Asynchronous function to extract transcript data
 async def extract_transcript_data(youtube_video_id: str):
-    language_codes = ["en", "de", "es", "fr", "ru", "ja", "ko", "zh-Hans", "zh-Hant", "it", "pt", "nl", "ar"]  # Expanded language list
+    language_codes = ["en", "de", "es", "fr", "ru", "ja", "ko", "zh-Hans", "zh-Hant", "it", "pt", "nl", "ar"]
     transcript_text = ""
 
     for code in language_codes:
@@ -86,12 +83,21 @@ async def get_cached_transcript_data(youtube_video_id: str):
     cache[youtube_video_id] = transcript_data
     return transcript_data
 
+# Endpoint to transcribe YouTube video
 @app.get("/transcribe")
 async def transcribe(video_url: str = Query(..., description="The YouTube video URL")):
     video_id = extract_video_id(video_url)
     if not video_id:
         raise HTTPException(status_code=400, detail="Invalid YouTube URL")
-    return await get_cached_transcript_data(video_id)
+
+    try:
+        transcript_data = await get_cached_transcript_data(video_id)
+        return transcript_data
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logging.error(f"Unexpected error during transcription: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 if __name__ == "__main__":
     import uvicorn

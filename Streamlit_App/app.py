@@ -24,13 +24,14 @@ if st.button("Transcribe"):
                     st.subheader("Transcript")
                     st.write(data["transcript"])
                 else:
-                    st.error(data["error"])
+                    st.error(f"Error: {data.get('error', 'Unknown error')}")
             else:
-                st.error("Failed to retrieve transcript")
+                st.error(f"Error: Failed to retrieve transcript. Status code {response.status_code}")
+        
         except requests.exceptions.RequestException as e:
-            st.error(f"An error occurred: {e}")
+            st.error(f"Error: An exception occurred: {str(e)}")
     else:
-        st.error("Please enter a valid YouTube URL")
+        st.error("Error: Please enter a valid YouTube URL")
 
 
 
