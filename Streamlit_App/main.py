@@ -5,7 +5,8 @@ import concurrent.futures
 from youtube_transcript_api import YouTubeTranscriptApi, CouldNotRetrieveTranscript, TranscriptsDisabled, NoTranscriptFound, VideoUnavailable
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from cachetools import TTLCache  # Assuming you are using `cachetools` for caching
+from cachetools import TTLCache
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
