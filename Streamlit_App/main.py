@@ -102,7 +102,8 @@ async def transcribe(video_url: str = Query(..., description="The YouTube video 
 
 if __name__ == "__main__":
     import uvicorn
-    port = 9000
+    port = 9001
+    
     uvicorn.run(app, host="0.0.0.0", port=port)
 
 
